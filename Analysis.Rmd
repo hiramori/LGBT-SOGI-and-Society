@@ -16,6 +16,8 @@ header-includes:
   - \usepackage[hiragino-pron]{zxjafont}
 ---
 
+# 1. Original Analysis for 『LGBT／SOGIと社会』
+
 ```{r}
 #penalize excessive significant figures
 options(digits = 3)
@@ -189,9 +191,9 @@ chapter$wage <- chapter$earnings/chapter$yrworkhour
 chapter %>% 
   split(.$Q44) %>% 
   map(function(df){
-    aggregate(x = df$wage,                # Specify data column
-          by = list(df$sexorit),              # Specify group indicator
-          FUN = mean)                           # Specify function (i.e. mean)
+    aggregate(x = df$wage, 
+          by = list(df$sexorit), 
+          FUN = mean) 
 })
 
 chapter %>% 
@@ -209,4 +211,75 @@ print(100-100*(1858/2017)) #nonhet assigned female at birth
 print(100-100*(2368/3032)) #nonhet assigned male at birth
 print(100-100*(1881/2000)) #trans assigned female at birth
 print(100-100*(2483/2992)) #trans assigned male at birth
+```
+
+\pagebreak
+
+# 2. Additional Analysis for 関西研究報告会
+
+```{r}
+#yearly income from work by sexual orientation and trans status
+#(by sex assigned at birth)
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    aggregate(x = df$earnings, 
+          by = list(df$sexorit), 
+          FUN = mean) 
+})
+
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    aggregate(x = df$earnings,
+          by = list(df$Trans2), 
+          FUN = mean)
+})
+```
+
+```{r}
+#weekly work hours by sexual orientation and trans status
+#(by sex assigned at birth)
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    aggregate(x = df$Q8, 
+          by = list(df$sexorit), 
+          FUN = mean) 
+})
+
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    aggregate(x = df$Q8,
+          by = list(df$Trans2), 
+          FUN = mean)
+})
+```
+
+```{r}
+#labor force participation by sexual orientation and trans status
+#(by sex assigned at birth)
+
+#All respondents are included in this part of the analysis!!!
+
+data <- mutate(data, sexorit=recode(Q46,
+                  "異性愛者、すなわちゲイ・レズビアン等ではない［異性のみに性愛感情を抱く人］"="majority",
+                  "ゲイ・レズビアン・同性愛者［同性のみに性愛感情を抱く人］"="minority",
+                  "バイセクシュアル・両性愛者［男女どちらにも性愛感情を抱く人］"="minority",
+                  "アセクシュアル・無性愛者［誰に対しても性愛感情を抱かない人］"="minority",
+                  "決めたくない・決めていない"="questioning",
+                  "質問の意味がわからない"="majority"))
+
+data %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    100*prop.table(table(df$Q1, df$sexorit), 2)
+})
+
+data %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    100*prop.table(table(df$Q1, df$Trans2), 2)
+})
 ```
