@@ -1,0 +1,212 @@
+---
+title: "『LGBT／SOGIと社会』「第4章　社会階層」用分析"
+author: "平森大規^[ワシントン大学大学院社会学研究科博士候補生]"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+    pdf_document:
+        latex_engine: xelatex
+geometry: margin = 1in
+mainfont: Times New Roman
+fontsize: 11pt
+header-includes:
+  - \usepackage{indentfirst}
+  - \setlength\parindent{1cm}
+  - \usepackage{xltxtra}
+  - \usepackage{zxjatype}
+  - \usepackage[hiragino-pron]{zxjafont}
+---
+
+```{r}
+#penalize excessive significant figures
+options(digits = 3)
+
+#prevent scientific notation
+options(scipen = 10)
+
+#packages used in this analysis
+library(tidyverse)
+library(haven)
+library(naniar)
+```
+
+```{r}
+#import raw data
+data <- read_sav("data/osaka4285v1.sav")
+data <- as_factor(data)
+data <- replace_with_na_at(data, .vars = "Q44",
+                     condition = ~.x == "無回答")
+data$Q44 <- recode(data$Q44, "1" = "出生時男性", "2" = "出生時女性")
+```
+
+```{r}
+#Ligon's (1989) quantile method to estimate the midpoint
+#of the top income category
+table(data$Q12)
+
+x <- 1800 #lowest value of the top earnings category
+a <- log10(1700) #lowest value of the second top category
+b <- log10(x)
+c <- log10(24+5) #number of people in the top two categories
+d <- log10(24) #number of people in the top category
+v <- (c - d) /(b - a)
+ligon <- x * v/ (v - 1)
+print(ligon)
+```
+
+```{r}
+#data for the chapter
+chapter <- data %>% filter(Q1 == "仕事を持ち、働いている" &
+                        Q4 != "無回答" &
+                        Q8 != "0" &
+                        Q8 != "999" &
+                        Q12 != "仕事で得た収入はなかった" &
+                        Q12 != "わからない" &
+                        Q12 != "無回答" &
+                        Q25age > 24 & Q25age < 61 &
+                        Q32_1 != "無回答" &
+                        Q44 != "無回答" &
+                        Q46 != "無回答") 
+```
+
+```{r}
+#sex assigned at birth
+table(chapter$Q44)
+```
+
+```{r}
+#recode sexual orientation identity
+table(chapter$Q46)
+
+chapter <- mutate(chapter, sexorit=recode(Q46,
+                  "異性愛者、すなわちゲイ・レズビアン等ではない［異性のみに性愛感情を抱く人］"="majority",
+                  "ゲイ・レズビアン・同性愛者［同性のみに性愛感情を抱く人］"="minority",
+                  "バイセクシュアル・両性愛者［男女どちらにも性愛感情を抱く人］"="minority",
+                  "アセクシュアル・無性愛者［誰に対しても性愛感情を抱かない人］"="minority",
+                  "決めたくない・決めていない"="questioning",
+                  "質問の意味がわからない"="majority"))
+
+table(chapter$sexorit, chapter$Q44)
+```
+
+```{r}
+#check trans status
+table(chapter$Trans2, chapter$Q44)
+```
+
+```{r}
+#recode education
+table(chapter$Q32_1)
+table(chapter$Q32_2)
+table(chapter$Q32_1, chapter$Q32_2)
+
+chapter <- mutate(chapter, educ = ifelse(
+  chapter$Q32_1 == "小・中学校" | 
+  chapter$Q32_1 == "高校" | 
+  chapter$Q32_1 == "専門・専修学校（高卒後）" |
+  chapter$Q32_1 == "短大・高専" |
+  chapter$Q32_1 == "大学" & chapter$Q32_2 == "中退した" |
+  chapter$Q32_1 == "大学" & chapter$Q32_2 == "在学中",
+  "非大卒", "大卒"))
+```
+
+```{r}
+#education by sexual orientation and trans status
+#(by sex assigned at birth)
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){100*prop.table(table(df$educ, df$sexorit), 2)})
+
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){100*prop.table(table(df$educ, df$Trans2), 2)})
+```
+
+```{r}
+#check occupation
+table(chapter$Q4)
+```
+
+```{r}
+#recode occupation
+chapter <- mutate(chapter, occupation=recode(Q4,
+                  "管理職（課長相当以上の役職）"="管理職",
+                  "専門職・技術職"="専門・技術職",
+                  "事務職"="事務職",
+                  "販売・営業職"="販売・営業職",
+                  "サービスの仕事（介護職員，理美容師，接客業，ビル管理人を含む）"="サービス職",
+"モノを製造・加工する仕事" = "ブルーカラー職",
+"保安の仕事（自衛官，警察官，消防士，警備員など）" = "ブルーカラー職",
+"建設現場の仕事・採掘の仕事" = "ブルーカラー職",
+"農林漁業の仕事" = "ブルーカラー職",
+"機械や設備・乗物を運転する仕事" = "ブルーカラー職",
+"運搬・清掃・包装の仕事" = "ブルーカラー職",
+"その他" = "その他"))
+```
+
+```{r}
+#occupation by sexual orientation
+#(by sex assigned at birth)
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){100*prop.table(table(df$occupation, df$sexorit), 2)})
+```
+
+```{r}
+#creating a variable for hourly wage
+table(chapter$Q12)
+
+chapter$earnings <- recode(chapter$Q12,
+                           "１００万円未満" = "50",
+                           "１００～２００万円未満" = "150",
+                           "２００～３００万円未満" = "250",
+                           "３００～４００万円未満" = "350",
+                           "４００～５００万円未満" = "450",
+                           "５００～６００万円未満" = "550",
+                           "６００～７００万円未満" = "650",
+                           "７００～８００万円未満" = "750",
+                           "８００～９００万円未満" = "850",
+                           "９００～１０００万円未満" = "950",
+                           "１０００～１１００万円未満" = "1050",
+                           "１１００～１２００万円未満" = "1150",
+                           "１２００～１３００万円未満" = "1250",
+                           "１３００～１４００万円未満" = "1350",
+                           "１４００～１５００万円未満" = "1450",
+                           "１５００～１６００万円未満" = "1550",
+                           "１６００～１７００万円未満" = "1650",
+                           "１７００～１８００万円未満" = "1750",
+                           "１８００万円以上" = "2579",
+                           "仕事で得た収入はなかった" = "0",
+                           "わからない" = "0",
+                           "無回答" = "0")
+chapter$earnings <- as.numeric(as.character(chapter$earnings))*10000 
+chapter$yrworkhour <- 50*chapter$Q8
+chapter$wage <- chapter$earnings/chapter$yrworkhour
+```
+
+```{r}
+#hourly wage by sexual orientation and trans status
+#(by sex assigned at birth)
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    aggregate(x = df$wage,                # Specify data column
+          by = list(df$sexorit),              # Specify group indicator
+          FUN = mean)                           # Specify function (i.e. mean)
+})
+
+chapter %>% 
+  split(.$Q44) %>% 
+  map(function(df){
+    aggregate(x = df$wage,
+          by = list(df$Trans2), 
+          FUN = mean)
+})
+```
+
+```{r}
+#proportional differences (hourly wage)
+print(100-100*(1858/2017)) #nonhet assigned female at birth
+print(100-100*(2368/3032)) #nonhet assigned male at birth
+print(100-100*(1881/2000)) #trans assigned female at birth
+print(100-100*(2483/2992)) #trans assigned male at birth
+```
