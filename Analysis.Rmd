@@ -218,46 +218,6 @@ print(100-100*(2483/2992)) #trans assigned male at birth
 # 2. Additional Analysis for 関西研究報告会
 
 ```{r}
-#yearly income from work by sexual orientation and trans status
-#(by sex assigned at birth)
-chapter %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    aggregate(x = df$earnings, 
-          by = list(df$sexorit), 
-          FUN = mean) 
-})
-
-chapter %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    aggregate(x = df$earnings,
-          by = list(df$Trans2), 
-          FUN = mean)
-})
-```
-
-```{r}
-#weekly work hours by sexual orientation and trans status
-#(by sex assigned at birth)
-chapter %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    aggregate(x = df$Q8, 
-          by = list(df$sexorit), 
-          FUN = mean) 
-})
-
-chapter %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    aggregate(x = df$Q8,
-          by = list(df$Trans2), 
-          FUN = mean)
-})
-```
-
-```{r}
 #labor force participation by sexual orientation and trans status
 #(by sex assigned at birth)
 
