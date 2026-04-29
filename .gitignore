@@ -2,9 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+.positai
 
 #specific paths
 /data
+/doc
 
 #specific file types
-*.pdf

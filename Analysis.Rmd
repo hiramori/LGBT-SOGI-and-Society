@@ -1,6 +1,6 @@
 ---
-title: "『LGBT／SOGIと社会』「第4章　社会階層」用分析"
-author: "平森大規^[ワシントン大学大学院社会学研究科博士候補生]"
+title: "『性の多様性から読みとく社会』「第10章　社会階層――SOGIにもとづく社会経済的不平等」用分析"
+author: "平森大規"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
     pdf_document:
@@ -9,14 +9,10 @@ geometry: margin = 1in
 mainfont: Times New Roman
 fontsize: 11pt
 header-includes:
-  - \usepackage{indentfirst}
-  - \setlength\parindent{1cm}
   - \usepackage{xltxtra}
   - \usepackage{zxjatype}
   - \usepackage[hiragino-pron]{zxjafont}
 ---
-
-# 1. Original Analysis for 『LGBT／SOGIと社会』
 
 ```{r}
 #penalize excessive significant figures
@@ -28,16 +24,18 @@ options(scipen = 10)
 #packages used in this analysis
 library(tidyverse)
 library(haven)
-library(naniar)
 ```
 
 ```{r}
 #import raw data
 data <- read_sav("data/osaka4285v1.sav")
 data <- as_factor(data)
-data <- replace_with_na_at(data, .vars = "Q44",
-                     condition = ~.x == "無回答")
-data$Q44 <- recode(data$Q44, "1" = "出生時男性", "2" = "出生時女性")
+
+data <- data %>%
+  mutate(Q44 = na_if(Q44, "無回答"))
+data$Q44 <- recode(data$Q44, "男" = "出生時男性", "女" = "出生時女性")
+data <- data %>%
+  mutate(Q44 = factor(Q44, levels = c("出生時女性", "出生時男性")))
 ```
 
 ```{r}
@@ -188,21 +186,13 @@ chapter$wage <- chapter$earnings/chapter$yrworkhour
 ```{r}
 #hourly wage by sexual orientation and trans status
 #(by sex assigned at birth)
-chapter %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    aggregate(x = df$wage, 
-          by = list(df$sexorit), 
-          FUN = mean) 
-})
+chapter %>%
+  group_by(Q44, sexorit) %>%
+  summarise(mean_wage = mean(wage, na.rm = TRUE), .groups = "drop")
 
-chapter %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    aggregate(x = df$wage,
-          by = list(df$Trans2), 
-          FUN = mean)
-})
+chapter %>%
+  group_by(Q44, Trans2) %>%
+  summarise(mean_wage = mean(wage, na.rm = TRUE), .groups = "drop")
 ```
 
 ```{r}
@@ -211,35 +201,4 @@ print(100-100*(1858/2017)) #nonhet assigned female at birth
 print(100-100*(2368/3032)) #nonhet assigned male at birth
 print(100-100*(1881/2000)) #trans assigned female at birth
 print(100-100*(2483/2992)) #trans assigned male at birth
-```
-
-\pagebreak
-
-# 2. Additional Analysis for 関西研究報告会
-
-```{r}
-#labor force participation by sexual orientation and trans status
-#(by sex assigned at birth)
-
-#All respondents are included in this part of the analysis!!!
-
-data <- mutate(data, sexorit=recode(Q46,
-                  "異性愛者、すなわちゲイ・レズビアン等ではない［異性のみに性愛感情を抱く人］"="majority",
-                  "ゲイ・レズビアン・同性愛者［同性のみに性愛感情を抱く人］"="minority",
-                  "バイセクシュアル・両性愛者［男女どちらにも性愛感情を抱く人］"="minority",
-                  "アセクシュアル・無性愛者［誰に対しても性愛感情を抱かない人］"="minority",
-                  "決めたくない・決めていない"="questioning",
-                  "質問の意味がわからない"="majority"))
-
-data %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    100*prop.table(table(df$Q1, df$sexorit), 2)
-})
-
-data %>% 
-  split(.$Q44) %>% 
-  map(function(df){
-    100*prop.table(table(df$Q1, df$Trans2), 2)
-})
 ```
